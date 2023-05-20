@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -6,6 +7,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:audio_recorder/audio_recorder.dart';
+
+final Logger _logger = Logger();
 
 void main() => runApp(const MyApp());
 
@@ -143,78 +146,63 @@ class LanguagePage extends StatefulWidget {
 
 class _LanguagePageState extends State<LanguagePage> {
   bool isRecording = false;
-  Recording? recording;
+  String? filePath;
 
   Future<void> _startRecording() async {
-    if (await Permission.microphone.request().isGranted) {
-      setState(() {
-        isRecording = true;
-      });
-
-      Directory tempDir = await getTemporaryDirectory();
-      String tempPath = tempDir.path;
-      String filePath = '$tempPath/recording.wav';
-
-      await AudioRecorder.start(
-        path: filePath,
-        audioOutputFormat: AudioOutputFormat.WAV,
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
       );
 
-      bool isRecording = await AudioRecorder.isRecording;
-
-      setState(() {
-        recording = Recording(path: filePath, duration: Duration.zero);
-      });
-    } else {
-      // Permission denied
-    }
-  }
-
-  Future<void> _pauseRecording() async {
-    if (isRecording) {
-      await AudioRecorder.pause();
-      setState(() {
-        isRecording = false;
-      });
-    }
-  }
-
-  Future<void> _resumeRecording() async {
-    if (!isRecording) {
-      await AudioRecorder.resume();
-      setState(() {
-        isRecording = true;
-      });
+      if (result != null && result.files.isNotEmpty) {
+        String? path = result.files.first.path;
+        if (path != null) {
+          setState(() {
+            isRecording = true;
+            filePath = path;
+          });
+        }
+      }
+    } catch (e) {
+      _logger.e('Error picking audio file: $e');
     }
   }
 
   Future<void> _stopRecordingAndSend() async {
-    if (isRecording) {
-      Recording status = await AudioRecorder.stop();
+    if (isRecording && filePath != null) {
+      // Compress the file to a ZIP archive
+      String zipFilePath = await compressFileToZip(filePath!);
+
+      // Send the ZIP file to the backend API
+      String apiUrl = '<api_url>/send_speech_to_back_end';
+      await sendFileToApi(apiUrl, zipFilePath);
+
+      // Delete the temporary ZIP file
+      await File(zipFilePath).delete();
+
       setState(() {
         isRecording = false;
-        recording = Recording(
-          path: status.path,
-          duration: Duration(milliseconds: status.duration.inMilliseconds),
-        );
+        filePath = null;
       });
-
-      // Send the recording to the backend API
-      String apiUrl = '<api_url>/send_speech_to_back_end';
-      // Use http package to make the API call, sending the recording.filePath
-
-      // Handle the API response here
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _init();
+  Future<String> compressFileToZip(String filePath) async {
+    // Compress the file to a temporary ZIP archive
+    Directory tempDir = await getTemporaryDirectory();
+    String tempPath = tempDir.path;
+    String zipFilePath = '$tempPath/recording.zip';
+
+    // Compress the file using your preferred compression library
+    // (e.g., archive, zip, flutter_archive, etc.)
+
+    return zipFilePath;
   }
 
-  Future<void> _init() async {
-    await AudioRecorder.init();
+  Future<void> sendFileToApi(String apiUrl, String filePath) async {
+    // Send the file to the API using http package or any other preferred method
+    // (e.g., multipart/form-data, base64 encoding, etc.)
+    _logger.i('Sending file to API: $filePath');
   }
 
   @override
@@ -228,14 +216,8 @@ class _LanguagePageState extends State<LanguagePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
-              onPressed: () {
-                if (isRecording) {
-                  _pauseRecording();
-                } else {
-                  _startRecording();
-                }
-              },
-              child: Text(isRecording ? 'Pause' : 'Aufnahme starten'),
+              onPressed: isRecording ? null : _startRecording,
+              child: Text('Aufnahme starten'),
             ),
             ElevatedButton(
               onPressed: isRecording ? _stopRecordingAndSend : null,
