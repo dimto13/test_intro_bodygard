@@ -143,39 +143,30 @@ class LanguagePage extends StatefulWidget {
 
 class _LanguagePageState extends State<LanguagePage> {
   bool isRecording = false;
-  bool isPaused = false;
-  late AudioPlayer audioPlayer;
-  late Recording _recording;
-  late RecordingStatus _currentStatus = RecordingStatus.Unset;
-
-  @override
-  void initState() {
-    super.initState();
-    audioPlayer = AudioPlayer();
-    _init();
-  }
-
-  Future<void> _init() async {
-    await AudioRecorder.init();
-    _recording = Recording();
-    setState(() {});
-  }
+  Recording? recording;
 
   Future<void> _startRecording() async {
-    if (await AudioRecorder.hasPermissions) {
-      try {
-        await AudioRecorder.start();
-        bool isRecording = await AudioRecorder.isRecording;
-        setState(() {
-          _currentStatus =
-              isRecording ? RecordingStatus.Recording : RecordingStatus.Unset;
-          this.isRecording = isRecording;
-        });
-      } catch (e) {
-        print(e);
-      }
+    if (await Permission.microphone.request().isGranted) {
+      setState(() {
+        isRecording = true;
+      });
+
+      Directory tempDir = await getTemporaryDirectory();
+      String tempPath = tempDir.path;
+      String filePath = '$tempPath/recording.wav';
+
+      await AudioRecorder.start(
+        path: filePath,
+        audioOutputFormat: AudioOutputFormat.WAV,
+      );
+
+      bool isRecording = await AudioRecorder.isRecording;
+
+      setState(() {
+        recording = Recording(path: filePath, duration: Duration.zero);
+      });
     } else {
-      print("Permission not granted");
+      // Permission denied
     }
   }
 
@@ -183,45 +174,47 @@ class _LanguagePageState extends State<LanguagePage> {
     if (isRecording) {
       await AudioRecorder.pause();
       setState(() {
-        isPaused = true;
-        _currentStatus = RecordingStatus.Paused;
+        isRecording = false;
       });
     }
   }
 
   Future<void> _resumeRecording() async {
-    if (isRecording) {
+    if (!isRecording) {
       await AudioRecorder.resume();
       setState(() {
-        isPaused = false;
-        _currentStatus = RecordingStatus.Recording;
+        isRecording = true;
       });
     }
   }
 
-  Future<void> _stopRecording() async {
+  Future<void> _stopRecordingAndSend() async {
     if (isRecording) {
-      Recording recording = await AudioRecorder.stop();
+      Recording status = await AudioRecorder.stop();
       setState(() {
         isRecording = false;
-        _currentStatus = RecordingStatus.Stopped;
-        _recording = recording;
+        recording = Recording(
+          path: status.path,
+          duration: Duration(milliseconds: status.duration.inMilliseconds),
+        );
       });
+
+      // Send the recording to the backend API
+      String apiUrl = '<api_url>/send_speech_to_back_end';
+      // Use http package to make the API call, sending the recording.filePath
+
+      // Handle the API response here
     }
   }
 
-  Future<void> _playRecording() async {
-    if (_recording.path != null) {
-      await audioPlayer.play(_recording.path!, isLocal: true);
-    }
+  @override
+  void initState() {
+    super.initState();
+    _init();
   }
 
-  Future<void> _sendSpeechToBackend() async {
-    // Send the recorded speech to the backend API
-    String apiUrl = '<api_url>/send_speech_to_back_end';
-    // Use http package to make the API call, sending the recorded audio file
-
-    // Handle the API response here
+  Future<void> _init() async {
+    await AudioRecorder.init();
   }
 
   @override
@@ -237,28 +230,16 @@ class _LanguagePageState extends State<LanguagePage> {
             ElevatedButton(
               onPressed: () {
                 if (isRecording) {
-                  isPaused ? _resumeRecording() : _pauseRecording();
+                  _pauseRecording();
                 } else {
                   _startRecording();
                 }
               },
-              child: Text(isRecording
-                  ? (isPaused ? 'Fortsetzen' : 'Pause')
-                  : 'Aufnahme starten'),
-            ),
-            if (_currentStatus != RecordingStatus.Unset)
-              Text('Status: $_currentStatus'),
-            ElevatedButton(
-              onPressed: _stopRecording,
-              child: Text('Aufnahme beenden'),
+              child: Text(isRecording ? 'Pause' : 'Aufnahme starten'),
             ),
             ElevatedButton(
-              onPressed: _playRecording,
-              child: Text('Wiedergeben'),
-            ),
-            ElevatedButton(
-              onPressed: _sendSpeechToBackend,
-              child: Text('Senden'),
+              onPressed: isRecording ? _stopRecordingAndSend : null,
+              child: Text('Aufnahme beenden und senden'),
             ),
             ElevatedButton(
               onPressed: () {
