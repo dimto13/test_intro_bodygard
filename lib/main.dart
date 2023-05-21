@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 
 final Logger _logger = Logger();
 
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Intro app",
+      title: "Digital bodyguard",
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -32,29 +33,57 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: const Text('Was soll ich für dich untersuchen...'),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const EmailPage()),
-                );
-              },
-              child: const Text('E-Mail'),
+            FractionallySizedBox(
+              widthFactor: 0.6,
+              child: NeumorphicButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const EmailPage()),
+                  );
+                },
+                style: NeumorphicStyle(
+                  shape: NeumorphicShape.concave,
+                  boxShape:
+                      NeumorphicBoxShape.roundRect(BorderRadius.circular(12)),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                child: const Text(
+                  'E-Mail',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LanguagePage()),
-                );
-              },
-              child: const Text('Sprache'),
+            const SizedBox(height: 16),
+            FractionallySizedBox(
+              widthFactor: 0.6,
+              child: NeumorphicButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const LanguagePage()),
+                  );
+                },
+                style: NeumorphicStyle(
+                  shape: NeumorphicShape.concave,
+                  boxShape:
+                      NeumorphicBoxShape.roundRect(BorderRadius.circular(12)),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                child: const Text(
+                  'Sprache',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
             ),
           ],
         ),
@@ -108,7 +137,7 @@ class _EmailPageState extends State<EmailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('E-Mail'),
+        title: const Text('E-Mail'),
       ),
       body: Center(
         child: Column(
@@ -116,18 +145,18 @@ class _EmailPageState extends State<EmailPage> {
           children: [
             ElevatedButton(
               onPressed: _pickFile,
-              child: Text('E-Mail auswählen'),
+              child: const Text('E-Mail auswählen'),
             ),
             if (selectedFile != null) Text(selectedFile!.path),
             ElevatedButton(
               onPressed: selectedFile != null ? _compressAndSendEmail : null,
-              child: Text('Senden'),
+              child: const Text('Senden'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: Text('Abbrechen'),
+              child: const Text('Abbrechen'),
             ),
           ],
         ),
@@ -208,7 +237,7 @@ class _LanguagePageState extends State<LanguagePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sprache'),
+        title: const Text('Sprache'),
       ),
       body: Center(
         child: Column(
@@ -216,17 +245,17 @@ class _LanguagePageState extends State<LanguagePage> {
           children: [
             ElevatedButton(
               onPressed: isRecording ? null : _startRecording,
-              child: Text('Aufnahme starten'),
+              child: const Text('Aufnahme starten'),
             ),
             ElevatedButton(
               onPressed: isRecording ? _stopRecordingAndSend : null,
-              child: Text('Aufnahme beenden und senden'),
+              child: const Text('Aufnahme beenden und senden'),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: Text('Abbrechen'),
+              child: const Text('Abbrechen'),
             ),
           ],
         ),
