@@ -27,6 +27,7 @@ dependencies:
   audioplayers: any
   logger: ^1.3.0
   flutter_neumorphic: any
+  provider: any
   
 
 dev_dependencies:

@@ -1,28 +1,37 @@
-import 'package:flutter/material.dart';
+import 'package:hello_world/login_register.dart';
+import 'package:hello_world/auth.dart';
+import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 
 final Logger _logger = Logger();
 
-void main() => runApp(const MyApp());
+// das ist der main Aufruf der app
+void main() {
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "Digital bodyguard",
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return ChangeNotifierProvider(
+      create: (context) => Auth(),
+      child: MaterialApp(
+        title: "Digital Bodyguard",
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: Consumer<Auth>(
+          builder: (context, auth, child) {
+            return auth.isLoggedIn ? HomePage() : LoginPage();
+          },
+        ),
       ),
-      home: HomePage(),
     );
   }
 }
@@ -61,7 +70,7 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 30),
             FractionallySizedBox(
               widthFactor: 0.6,
               child: NeumorphicButton(
@@ -100,17 +109,21 @@ class EmailPage extends StatefulWidget {
 }
 
 class _EmailPageState extends State<EmailPage> {
-  File? selectedFile;
+  // Liste fuer die emails
+  List<File> selectedEmailsFiles = [];
+
+  void _removeSelectedFile(File file) {
+    selectedEmailsFiles.remove(file);
+    _logger.i('### Remove file: $file');
+    setState(() {}); // Aktualisiert die Anzeige der ausgewählten Dateien
+  }
 
   Future<void> _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-    );
-
-    if (result != null) {
-      setState(() {
-        selectedFile = File(result.files.single.path!);
-      });
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null && result.files.isNotEmpty) {
+      List<File> pickedFiles = result.paths.map((path) => File(path!)).toList();
+      selectedEmailsFiles.addAll(pickedFiles);
+      setState(() {}); // Aktualisiert die Anzeige der ausgewählten Dateien
     }
   }
 
@@ -124,12 +137,13 @@ class _EmailPageState extends State<EmailPage> {
     // Send the ZIP file to the backend API
     String apiUrl = '<api_url>/send_email_to_back_end';
     // Use http package to make the API call, sending the zipFilePath
+    _logger.i('### Sending data...');
 
     // Handle the API response here
 
     // Clear the selected file
     setState(() {
-      selectedFile = null;
+      selectedEmailsFiles = [];
     });
   }
 
@@ -147,9 +161,27 @@ class _EmailPageState extends State<EmailPage> {
               onPressed: _pickFile,
               child: const Text('E-Mail auswählen'),
             ),
-            if (selectedFile != null) Text(selectedFile!.path),
+            if (selectedEmailsFiles.isNotEmpty)
+              Expanded(
+                child: ListView.builder(
+                  itemCount: selectedEmailsFiles.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final file = selectedEmailsFiles[index];
+                    return ListTile(
+                      title: Text(file.path),
+                      trailing: GestureDetector(
+                        onTap: () {
+                          _removeSelectedFile(file);
+                        },
+                        child: const Icon(Icons.delete),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ElevatedButton(
-              onPressed: selectedFile != null ? _compressAndSendEmail : null,
+              onPressed:
+                  selectedEmailsFiles.isNotEmpty ? _compressAndSendEmail : null,
               child: const Text('Senden'),
             ),
             ElevatedButton(
