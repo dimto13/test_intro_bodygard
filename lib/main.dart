@@ -2,10 +2,8 @@ import 'package:hello_world/login_register.dart';
 import 'package:hello_world/auth.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
-import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_neumorphic/flutter_neumorphic.dart';
 
@@ -13,10 +11,12 @@ final Logger _logger = Logger();
 
 // das ist der main Aufruf der app
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
         ),
         home: Consumer<Auth>(
           builder: (context, auth, child) {
-            return auth.isLoggedIn ? HomePage() : LoginPage();
+            return auth.isLoggedIn ? const HomePage() : LoginPage();
           },
         ),
       ),
@@ -38,6 +38,8 @@ class MyApp extends StatelessWidget {
 
 // ### my app start
 class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
